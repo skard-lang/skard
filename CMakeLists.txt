@@ -9,6 +9,7 @@ add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
 file(GLOB SKARD_LIB_SOURCE_FILES skard-lib/src/*.h skard-lib/src/*.c)
 add_library(skard-lib STATIC ${SKARD_LIB_SOURCE_FILES})
+target_compile_definitions(skard-lib PRIVATE -D__USE_MINGW_ANSI_STDIO)
 
 file(GLOB SKARD_RUNTIME_SOURCE_FILES skard-runtime/src/*.h skard-runtime/src/*.c)
 add_executable(skard ${SKARD_RUNTIME_SOURCE_FILES})

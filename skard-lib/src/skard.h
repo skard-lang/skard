@@ -10,5 +10,9 @@
 
 #define SKARD_VERSION (SKARD_XSTR(SKARD_VERSION_MAJOR) "." SKARD_XSTR(SKARD_VERSION_MINOR) "." SKARD_XSTR(SKARD_VERSION_PATCH))
 
+#include "chunk.h"
+#include "vm.h"
+#include "debug.h"
+
 
 #endif //SKARD_SKARD_H
