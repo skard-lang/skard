@@ -7,6 +7,9 @@ int main(int argc, char **argv)
     (void) argc;
     (void) argv;
 
+    SkardVM vm;
+    vm_init(&vm);
+
     Chunk c;
     chunk_init(&c);
 
@@ -17,7 +20,12 @@ int main(int argc, char **argv)
 
     disassemble_chunk(&c, "TEST");
 
+    printf("RUNNING...\n");
+    vm_run(&vm, &c);
+
     chunk_free(&c);
+
+    vm_free(&vm);
 
     return 0;
 }

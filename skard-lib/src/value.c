@@ -1,6 +1,20 @@
 #include "value.h"
 
+#include <stdio.h>
+
 #include "utils.h"
+
+void print_value(Value value)
+{
+    switch (value.type) {
+        case VAL_REAL:
+            printf("%lf", value.as.sk_real);
+            break;
+        default:
+            printf("UNKNOWN TYPE");
+    }
+}
+
 
 void value_array_init(ValueArray *array) {
     array->count = 0;

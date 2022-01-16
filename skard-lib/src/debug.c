@@ -21,17 +21,6 @@ static void print_instruction_name(const char *name)
     printf("%-16s | ", name);
 }
 
-static void print_value(Value value)
-{
-    switch (value.type) {
-        case VAL_REAL:
-            printf("%lf", value.as.sk_real);
-            break;
-        default:
-            printf("UNKNOWN");
-    }
-}
-
 static size_t disassemble_unknown_instruction(size_t offset)
 {
     print_instruction_name("UNKNOWN");

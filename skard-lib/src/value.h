@@ -16,6 +16,8 @@ typedef struct {
     } as;
 } Value;
 
+void print_value(Value value);
+
 typedef struct {
     size_t count;
     size_t capacity;

@@ -18,7 +18,7 @@ This is an implementation project built on top of **skard-lib** that serves as a
 
 ## Milestones
 
- - [ ] Custom basic VM
+ - [x] Custom basic VM
  - [ ] Running "precompiled" programs
  - [ ] Lexing
  - [ ] Parsing

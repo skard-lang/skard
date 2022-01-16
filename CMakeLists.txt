@@ -3,7 +3,7 @@ project(skard C)
 
 set(CMAKE_C_STANDARD 99)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DSKARD_DEBUG")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DSKARD_DEBUG -DSKARD_DEBUG_TRACE")
 
 add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 
