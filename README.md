@@ -19,7 +19,7 @@ This is an implementation project built on top of **skard-lib** that serves as a
 ## Milestones
 
  - [x] Custom basic VM
- - [ ] Lexing
+ - [x] Lexing
  - [ ] Parsing
  - [ ] Turing complete
  - [ ] ...
