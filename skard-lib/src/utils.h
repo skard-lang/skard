@@ -3,8 +3,8 @@
 
 #include <stdlib.h>
 
-void *reallocate(void *pointer, size_t newSize);
-void *allocate(size_t newSize);
+void *reallocate(void *pointer, size_t new_size);
+void *allocate(size_t new_size);
 
 #define SKARD_GROW_CAPACITY(capacity) \
     ((capacity) < 8 ? 8 : (capacity) * 2)

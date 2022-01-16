@@ -2,24 +2,27 @@
 
 #include <stdio.h>
 
-void disassembleChunk(Chunk *chunk, const char *name) {
+void disassemble_chunk(Chunk *chunk, const char *name)
+{
     printf("DISASSEMBLING CHUNK: %s\n", name);
     printf("OFFSET |  LINE  | COLUMN |      OPCODE      | OPERAND | VALUE\n");
     printf("-------------------------------------------------------------\n");
 
     size_t offset = 0;
     while (offset < chunk->count) {
-        offset = disassembleInstruction(chunk, offset);
+        offset = disassemble_instruction(chunk, offset);
         printf("\n");
     }
     printf("-------------------------------------------------------------\n");
 }
 
-static void printInstructionName(const char *name) {
+static void print_instruction_name(const char *name)
+{
     printf("%-16s | ", name);
 }
 
-static void printValue(Value value) {
+static void print_value(Value value)
+{
     switch (value.type) {
         case VAL_REAL:
             printf("%lf", value.as.sk_real);
@@ -29,50 +32,55 @@ static void printValue(Value value) {
     }
 }
 
-static size_t unknownInstruction(size_t offset) {
-    printInstructionName("UNKNOWN");
+static size_t disassemble_unknown_instruction(size_t offset)
+{
+    print_instruction_name("UNKNOWN");
     return offset + 1;
 }
 
-static size_t simpleInstruction(const char *name, size_t offset) {
-    printInstructionName(name);
+static size_t disassemble_simple_instruction(const char *name, size_t offset)
+{
+    print_instruction_name(name);
     return offset + 1;
 }
 
-static size_t constantInstruction(const char *name, size_t offset, Chunk *chunk) {
-    printInstructionName(name);
+static size_t disassemble_constant_instruction(const char *name, size_t offset, Chunk *chunk)
+{
+    print_instruction_name(name);
     size_t index = chunk->code[offset + 1];
     printf("%07zu | ", index);
-    printValue(chunk->constants.values[index]);
+    print_value(chunk->constants.values[index]);
     return offset + 2;
 }
 
-static size_t constantLongInstruction(const char *name, size_t offset, Chunk *chunk) {
-    printInstructionName(name);
+static size_t disassemble_constant_long_instruction(const char *name, size_t offset, Chunk *chunk)
+{
+    print_instruction_name(name);
     size_t index = chunk->code[offset + 1] | (chunk->code[offset + 2] << 8) | (chunk->code[offset + 3] << 16);
     printf("%07zu | ", index);
-    printValue(chunk->constants.values[index]);
+    print_value(chunk->constants.values[index]);
     return offset + 4;
 }
 
-size_t disassembleInstruction(Chunk *chunk, size_t offset) {
+size_t disassemble_instruction(Chunk *chunk, size_t offset)
+{
     printf("%06zu | ", offset);
-    size_t line = debugInfoReadLine(&chunk->debug_info, offset);
-    size_t column = debugInfoReadColumn(&chunk->debug_info, offset);
+    size_t line = debug_info_read_line(&chunk->debug_info, offset);
+    size_t column = debug_info_read_column(&chunk->debug_info, offset);
     printf("%06zu | ", line);
     printf("%06zu | ", column);
 
     uint8_t byte = chunk->code[offset];
     switch (byte) {
         case OP_RETURN:
-            return simpleInstruction("OP_RETURN", offset);
+            return disassemble_simple_instruction("OP_RETURN", offset);
         case OP_DUMP:
-            return simpleInstruction("OP_DUMP", offset);
+            return disassemble_simple_instruction("OP_DUMP", offset);
         case OP_CONSTANT:
-            return constantInstruction("OP_CONSTANT", offset, chunk);
+            return disassemble_constant_instruction("OP_CONSTANT", offset, chunk);
         case OP_CONSTANT_LONG:
-            return constantLongInstruction("OP_CONSTANT_LONG", offset, chunk);
+            return disassemble_constant_long_instruction("OP_CONSTANT_LONG", offset, chunk);
         default:
-            return unknownInstruction(offset);
+            return disassemble_unknown_instruction(offset);
     }
 }

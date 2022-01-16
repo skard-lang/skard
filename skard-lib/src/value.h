@@ -22,9 +22,9 @@ typedef struct {
     Value *values;
 } ValueArray;
 
-void valueArrayInit(ValueArray *array);
-void valueArrayFree(ValueArray *array);
-void valueArrayAdd(ValueArray *array, Value value);
+void value_array_init(ValueArray *array);
+void value_array_free(ValueArray *array);
+void value_array_add(ValueArray *array, Value value);
 
 
 #endif //SKARD_VALUE_H

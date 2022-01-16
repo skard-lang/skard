@@ -24,13 +24,13 @@ typedef struct {
     size_t *columns;
 } DebugInfo;
 
-void debugInfoInit(DebugInfo *debugInfo);
-void debugInfoFree(DebugInfo *debugInfo);
-void debugInfoAddLine(DebugInfo *debugInfo, size_t line);
-void debugInfoAddColumn(DebugInfo *debugInfo, size_t column);
-void debugInfoAdd(DebugInfo *debugInfo, size_t line, size_t column);
-size_t debugInfoReadLine(DebugInfo *debugInfo, size_t offset);
-size_t debugInfoReadColumn(DebugInfo *debugInfo, size_t offset);
+void debug_info_init(DebugInfo *debug_info);
+void debug_info_free(DebugInfo *debug_info);
+void debug_info_add_line(DebugInfo *debug_info, size_t line);
+void debug_info_add_column(DebugInfo *debug_info, size_t column);
+void debug_info_add(DebugInfo *debug_info, size_t line, size_t column);
+size_t debug_info_read_line(DebugInfo *debug_info, size_t offset);
+size_t debug_info_read_column(DebugInfo *debug_info, size_t offset);
 
 typedef struct {
     size_t count;
@@ -40,9 +40,9 @@ typedef struct {
     DebugInfo debug_info;
 } Chunk;
 
-void chunkInit(Chunk *chunk);
-void chunkFree(Chunk *chunk);
-void chunkAddOpByte(Chunk *chunk, uint8_t byte, size_t line, size_t column);
-void chunkAddOpConstant(Chunk *chunk, Value constant, size_t line, size_t column);
+void chunk_init(Chunk *chunk);
+void chunk_free(Chunk *chunk);
+void chunk_write_byte(Chunk *chunk, uint8_t byte, size_t line, size_t column);
+void chunk_write_op_constant(Chunk *chunk, Value constant, size_t line, size_t column);
 
 #endif //SKARD_CHUNK_H

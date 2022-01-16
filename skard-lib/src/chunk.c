@@ -3,57 +3,63 @@
 #include "utils.h"
 #include "error.h"
 
-void debugInfoInit(DebugInfo *debugInfo) {
-    debugInfo->lines_count = 0;
-    debugInfo->lines_capacity = 0;
-    debugInfo->lines = NULL;
-    debugInfo->columns_count = 0;
-    debugInfo->columns_capacity = 0;
-    debugInfo->columns = NULL;
+void debug_info_init(DebugInfo *debug_info)
+{
+    debug_info->lines_count = 0;
+    debug_info->lines_capacity = 0;
+    debug_info->lines = NULL;
+    debug_info->columns_count = 0;
+    debug_info->columns_capacity = 0;
+    debug_info->columns = NULL;
 }
 
-void debugInfoFree(DebugInfo *debugInfo) {
-    SKARD_FREE_ARRAY(size_t, debugInfo->lines);
-    SKARD_FREE_ARRAY(size_t, debugInfo->columns);
-    debugInfoInit(debugInfo);
+void debug_info_free(DebugInfo *debug_info)
+{
+    SKARD_FREE_ARRAY(size_t, debug_info->lines);
+    SKARD_FREE_ARRAY(size_t, debug_info->columns);
+    debug_info_init(debug_info);
 }
 
-void debugInfoAddLine(DebugInfo *debugInfo, size_t line) {
-    if (debugInfo->lines_capacity != 0 && debugInfo->lines[debugInfo->lines_count - 2] == line) {
-        debugInfo->lines[debugInfo->lines_count - 1]++;
+void debug_info_add_line(DebugInfo *debug_info, size_t line)
+{
+    if (debug_info->lines_capacity != 0 && debug_info->lines[debug_info->lines_count - 2] == line) {
+        debug_info->lines[debug_info->lines_count - 1]++;
         return;
     }
 
-    if (debugInfo->lines_capacity < debugInfo->lines_capacity + 2) {
-        debugInfo->lines_capacity = SKARD_GROW_CAPACITY(debugInfo->lines_capacity);
-        debugInfo->lines = SKARD_GROW_ARRAY(size_t, debugInfo->lines, debugInfo->lines_capacity);
+    if (debug_info->lines_capacity < debug_info->lines_capacity + 2) {
+        debug_info->lines_capacity = SKARD_GROW_CAPACITY(debug_info->lines_capacity);
+        debug_info->lines = SKARD_GROW_ARRAY(size_t, debug_info->lines, debug_info->lines_capacity);
     }
-    debugInfo->lines[debugInfo->lines_count] = line;
-    debugInfo->lines[debugInfo->lines_count + 1] = 1;
-    debugInfo->lines_count += 2;
+    debug_info->lines[debug_info->lines_count] = line;
+    debug_info->lines[debug_info->lines_count + 1] = 1;
+    debug_info->lines_count += 2;
 }
 
-void debugInfoAddColumn(DebugInfo *debugInfo, size_t column) {
-    if (debugInfo->columns_capacity < debugInfo->columns_count + 1) {
-        debugInfo->columns_capacity = SKARD_GROW_CAPACITY(debugInfo->columns_capacity);
-        debugInfo->columns = SKARD_GROW_ARRAY(size_t, debugInfo->columns, debugInfo->columns_capacity);
+void debug_info_add_column(DebugInfo *debug_info, size_t column)
+{
+    if (debug_info->columns_capacity < debug_info->columns_count + 1) {
+        debug_info->columns_capacity = SKARD_GROW_CAPACITY(debug_info->columns_capacity);
+        debug_info->columns = SKARD_GROW_ARRAY(size_t, debug_info->columns, debug_info->columns_capacity);
     }
-    debugInfo->columns[debugInfo->columns_count] = column;
-    debugInfo->columns_count++;
+    debug_info->columns[debug_info->columns_count] = column;
+    debug_info->columns_count++;
 }
 
-void debugInfoAdd(DebugInfo *debugInfo, size_t line, size_t column) {
-    debugInfoAddLine(debugInfo, line);
-    debugInfoAddColumn(debugInfo, column);
+void debug_info_add(DebugInfo *debug_info, size_t line, size_t column)
+{
+    debug_info_add_line(debug_info, line);
+    debug_info_add_column(debug_info, column);
 }
 
-size_t debugInfoReadLine(DebugInfo *debugInfo, size_t offset) {
+size_t debug_info_read_line(DebugInfo *debug_info, size_t offset)
+{
     size_t pos = 0;
-    while (pos * 2 < debugInfo->lines_count) {
-        if (offset >= debugInfo->lines[pos * 2 + 1]) {
-            offset -= debugInfo->lines[pos * 2 + 1];
+    while (pos * 2 < debug_info->lines_count) {
+        if (offset >= debug_info->lines[pos * 2 + 1]) {
+            offset -= debug_info->lines[pos * 2 + 1];
         } else {
-            return debugInfo->lines[pos * 2];
+            return debug_info->lines[pos * 2];
         }
 
         pos++;
@@ -62,54 +68,60 @@ size_t debugInfoReadLine(DebugInfo *debugInfo, size_t offset) {
     return 0;
 }
 
-size_t debugInfoReadColumn(DebugInfo *debugInfo, size_t offset) {
-    return debugInfo->columns[offset];
+size_t debug_info_read_column(DebugInfo *debug_info, size_t offset)
+{
+    return debug_info->columns[offset];
 }
 
 
-void chunkInit(Chunk *chunk) {
+void chunk_init(Chunk *chunk)
+{
     chunk->count = 0;
     chunk->capacity = 0;
     chunk->code = NULL;
-    valueArrayInit(&chunk->constants);
-    debugInfoInit(&chunk->debug_info);
+    value_array_init(&chunk->constants);
+    debug_info_init(&chunk->debug_info);
 }
 
-void chunkFree(Chunk *chunk) {
-    debugInfoFree(&chunk->debug_info);
-    valueArrayFree(&chunk->constants);
+void chunk_free(Chunk *chunk)
+{
+    debug_info_free(&chunk->debug_info);
+    value_array_free(&chunk->constants);
     SKARD_FREE_ARRAY(uint8_t, chunk->code);
-    chunkInit(chunk);
+    chunk_init(chunk);
 }
 
-void chunkAddOpByte(Chunk *chunk, uint8_t byte, size_t line, size_t column) {
+void chunk_write_byte(Chunk *chunk, uint8_t byte, size_t line, size_t column)
+{
     if (chunk->capacity < chunk->count + 1) {
         chunk->capacity = SKARD_GROW_CAPACITY(chunk->capacity);
         chunk->code = SKARD_GROW_ARRAY(uint8_t, chunk->code, chunk->capacity);
     }
     chunk->code[chunk->count] = byte;
     chunk->count++;
-    debugInfoAdd(&chunk->debug_info, line, column);
+    debug_info_add(&chunk->debug_info, line, column);
 }
 
-static size_t chunkAddConstant(Chunk *chunk, Value constant) {
-    valueArrayAdd(&chunk->constants, constant);
+static size_t chunk_add_constant(Chunk *chunk, Value constant)
+{
+    value_array_add(&chunk->constants, constant);
     return chunk->constants.count - 1;
 }
 
-void chunkAddOpConstant(Chunk *chunk, Value constant, size_t line, size_t column) {
-    size_t index = chunkAddConstant(chunk, constant);
+void chunk_write_op_constant(Chunk *chunk, Value constant, size_t line, size_t column)
+{
+    size_t index = chunk_add_constant(chunk, constant);
     if (index >= SKARD_MAX_CHUNK_CONSTANTS) {
-        errorTooManyConstantsInChunk();
+        error_too_many_constants_in_chunk();
     }
 
     if (index <= UINT8_MAX) {
-        chunkAddOpByte(chunk, OP_CONSTANT, line, column);
-        chunkAddOpByte(chunk, index, line, column);
+        chunk_write_byte(chunk, OP_CONSTANT, line, column);
+        chunk_write_byte(chunk, index, line, column);
         return;
     }
-    chunkAddOpByte(chunk, OP_CONSTANT_LONG, line, column);
-    chunkAddOpByte(chunk, index & 0xFF, line, column);
-    chunkAddOpByte(chunk, (index >> 8) & 0xFF, line, column);
-    chunkAddOpByte(chunk, (index >> 16) & 0xFF, line, column);
+    chunk_write_byte(chunk, OP_CONSTANT_LONG, line, column);
+    chunk_write_byte(chunk, index & 0xFF, line, column);
+    chunk_write_byte(chunk, (index >> 8) & 0xFF, line, column);
+    chunk_write_byte(chunk, (index >> 16) & 0xFF, line, column);
 }

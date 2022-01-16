@@ -2,26 +2,26 @@
 
 #include "error.h"
 
-void *reallocate(void *pointer, size_t newSize) {
-    if (newSize == 0) {
+void *reallocate(void *pointer, size_t new_size) {
+    if (new_size == 0) {
         if (pointer != NULL) {
             free(pointer);
         }
         return NULL;
     }
 
-    void *result = realloc(pointer, newSize);
+    void *result = realloc(pointer, new_size);
     if (result == NULL) {
-        errorNotEnoughMemory();
+        error_not_enough_memory();
     }
 
     return result;
 }
 
-void *allocate(size_t newSize) {
-    void *result = malloc(newSize);
+void *allocate(size_t new_size) {
+    void *result = malloc(new_size);
     if (result == NULL) {
-        errorNotEnoughMemory();
+        error_not_enough_memory();
     }
 
     return result;

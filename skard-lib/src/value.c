@@ -2,18 +2,18 @@
 
 #include "utils.h"
 
-void valueArrayInit(ValueArray *array) {
+void value_array_init(ValueArray *array) {
     array->count = 0;
     array->capacity = 0;
     array->values = NULL;
 }
 
-void valueArrayFree(ValueArray *array) {
+void value_array_free(ValueArray *array) {
     SKARD_FREE_ARRAY(Value, array->values);
-    valueArrayInit(array);
+    value_array_init(array);
 }
 
-void valueArrayAdd(ValueArray *array, Value value) {
+void value_array_add(ValueArray *array, Value value) {
     if (array->capacity < array->count + 1) {
         array->capacity = SKARD_GROW_CAPACITY(array->capacity);
         array->values = SKARD_GROW_ARRAY(Value, array->values, array->capacity);
