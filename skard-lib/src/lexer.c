@@ -1,20 +1,31 @@
 #include "lexer.h"
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 
 void lexer_init(Lexer *lexer, const char *source)
 {
+    lexer->source = source;
     lexer->start = source;
     lexer->current = source;
     lexer->line = 1;
     lexer->column = 0;
 }
 
-static Token make_token(Lexer *lexer, TokenType type);
-static Token make_eof_token(Lexer *lexer);
-static Token make_eol_token(Lexer *lexer);
-static Token make_error_token(Lexer *lexer, const char *message);
+void lexer_reset(Lexer *lexer)
+{
+    lexer->start = lexer->source;
+    lexer->current = lexer->source;
+    lexer->line = 1;
+    lexer->column = 0;
+}
+
+static Token lexer_make_token(Lexer *lexer, TokenType type);
+static Token lexer_make_eof_token(Lexer *lexer);
+static Token lexer_make_eol_token(Lexer *lexer);
+static Token lexer_make_error_token(Lexer *lexer, const char *message);
 
 static bool lexer_is_at_end_of_file(Lexer *lexer);
 static bool lexer_is_at_end_of_line(Lexer *lexer);
@@ -40,7 +51,7 @@ static Token lexer_scan_number(Lexer *lexer);
 static Token lexer_scan_identifier(Lexer *lexer);
 
 
-static Token make_token(Lexer *lexer, TokenType type)
+static Token lexer_make_token(Lexer *lexer, TokenType type)
 {
     Token token;
     token.type = type;
@@ -51,19 +62,19 @@ static Token make_token(Lexer *lexer, TokenType type)
     return token;
 }
 
-static Token make_eof_token(Lexer *lexer)
+static Token lexer_make_eof_token(Lexer *lexer)
 {
     lexer->column++;
-    return make_token(lexer, TOKEN_EOF);
+    return lexer_make_token(lexer, TOKEN_EOF);
 }
 
-static Token make_eol_token(Lexer *lexer)
+static Token lexer_make_eol_token(Lexer *lexer)
 {
     lexer->line++;
-    return make_token(lexer, TOKEN_EOL);
+    return lexer_make_token(lexer, TOKEN_EOL);
 }
 
-static Token make_error_token(Lexer *lexer, const char *message)
+static Token lexer_make_error_token(Lexer *lexer, const char *message)
 {
     Token token;
     token.type = TOKEN_ERROR;
@@ -160,10 +171,12 @@ static void lexer_skip_insignificant(Lexer *lexer)
         if (!is_insignificant_whitespace(c)) {
             if (c == '/' && lexer_peek_next(lexer) == '/') {
                 lexer_skip_single_line_comment(lexer);
+                continue;
             }
 
             if (c == '/' && lexer_peek_next(lexer) == '*') {
                 lexer_skip_multi_line_comment(lexer);
+                continue;
             }
 
             return;
@@ -268,11 +281,11 @@ static Token lexer_scan_string(Lexer *lexer)
     }
 
     if (lexer_is_at_end_of_file(lexer) || lexer_is_at_end_of_line(lexer)) {
-        return make_error_token(lexer, "Unterminated string literal");
+        return lexer_make_error_token(lexer, "Unterminated string literal");
     }
 
     lexer_advance(lexer);
-    return make_token(lexer, TOKEN_LIT_STRING);
+    return lexer_make_token(lexer, TOKEN_LIT_STRING);
 }
 
 static Token lexer_scan_number(Lexer *lexer)
@@ -287,10 +300,10 @@ static Token lexer_scan_number(Lexer *lexer)
             lexer_advance(lexer);
         }
 
-        return make_token(lexer, TOKEN_LIT_REAL);
+        return lexer_make_token(lexer, TOKEN_LIT_REAL);
     }
 
-    return make_token(lexer, TOKEN_LIT_INT);
+    return lexer_make_token(lexer, TOKEN_LIT_INT);
 }
 
 static Token lexer_scan_identifier(Lexer *lexer)
@@ -299,21 +312,22 @@ static Token lexer_scan_identifier(Lexer *lexer)
         lexer_advance(lexer);
     }
 
-    return make_token(lexer, lexer_determine_identifier_type(lexer));
+    return lexer_make_token(lexer, lexer_determine_identifier_type(lexer));
 }
 
 
 Token lexer_scan_token(Lexer *lexer)
 {
     lexer_skip_insignificant(lexer);
+    lexer->start = lexer->current;
 
     if (lexer_is_at_end_of_file(lexer)) {
-        return make_eof_token(lexer);
+        return lexer_make_eof_token(lexer);
     }
 
     if (lexer_is_at_end_of_line(lexer)) {
         lexer_advance(lexer);
-        return make_eol_token(lexer);
+        return lexer_make_eol_token(lexer);
     }
 
     char c = lexer_advance(lexer);
@@ -328,52 +342,201 @@ Token lexer_scan_token(Lexer *lexer)
 
     switch (c) {
         case '(':
-            return make_token(lexer, TOKEN_LEFT_PAREN);
+            return lexer_make_token(lexer, TOKEN_LEFT_PAREN);
         case ')':
-            return make_token(lexer, TOKEN_RIGHT_PAREN);
+            return lexer_make_token(lexer, TOKEN_RIGHT_PAREN);
         case '{':
-            return make_token(lexer, TOKEN_LEFT_BRACE);
+            return lexer_make_token(lexer, TOKEN_LEFT_BRACE);
         case '}':
-            return make_token(lexer, TOKEN_RIGHT_BRACE);
+            return lexer_make_token(lexer, TOKEN_RIGHT_BRACE);
         case '[':
-            return make_token(lexer, TOKEN_LEFT_BRACKET);
+            return lexer_make_token(lexer, TOKEN_LEFT_BRACKET);
         case ']':
-            return make_token(lexer, TOKEN_RIGHT_BRACKET);
+            return lexer_make_token(lexer, TOKEN_RIGHT_BRACKET);
         case '.':
-            return make_token(lexer, TOKEN_DOT);
+            return lexer_make_token(lexer, TOKEN_DOT);
         case ',':
-            return make_token(lexer, TOKEN_COMMA);
+            return lexer_make_token(lexer, TOKEN_COMMA);
         case ':':
-            return make_token(lexer, TOKEN_COLON);
+            return lexer_make_token(lexer, TOKEN_COLON);
         case '+':
-            return make_token(lexer, TOKEN_PLUS);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_PLUS_ASSIGN : TOKEN_PLUS);
         case '-':
-            return make_token(lexer, lexer_match_next(lexer, '>') ? TOKEN_RIGHT_ARROW : TOKEN_MINUS);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_STAR_ASSIGN :
+                                                lexer_match_next(lexer, '>') ? TOKEN_RIGHT_ARROW : TOKEN_MINUS);
         case '*':
-            return make_token(lexer, TOKEN_STAR);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_STAR_ASSIGN : TOKEN_STAR);
         case '/':
-            return make_token(lexer, TOKEN_SLASH);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_SLASH_ASSIGN : TOKEN_SLASH);
         case '@':
-            return make_token(lexer, TOKEN_AT);
+            return lexer_make_token(lexer, TOKEN_AT);
         case '!':
-            return make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_NOT_EQUAL : TOKEN_NOT);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_NOT_EQUAL : TOKEN_NOT);
         case '=':
-            return make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_EQUAL : TOKEN_ASSIGN);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_EQUAL : TOKEN_ASSIGN);
         case '>':
-            return make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
         case '<':
-            return make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+            return lexer_make_token(lexer, lexer_match_next(lexer, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
         case '|':
-            return make_token(lexer, lexer_match_next(lexer, '>') ? TOKEN_PIPE :
-                                     (lexer_match_next(lexer, '|') ? TOKEN_OR : TOKEN_DIV));
+            return lexer_make_token(lexer, lexer_match_next(lexer, '>') ? TOKEN_PIPE :
+                                                lexer_match_next(lexer, '|') ? TOKEN_OR : TOKEN_DIV);
         case '&':
             return lexer_match_next(lexer, '&') ?
-                   make_token(lexer, TOKEN_AND) : make_error_token(lexer, "Unexpected character");
+                   lexer_make_token(lexer, TOKEN_AND) : lexer_make_error_token(lexer, "Unexpected character");
         case '"':
             return lexer_scan_string(lexer);
         default:
             break;
     }
 
-    return make_error_token(lexer, "Unexpected character");
+    return lexer_make_error_token(lexer, "Unexpected character");
+}
+
+static void print_token(Token *token);
+
+static void print_token(Token *token)
+{
+    if (token->type == TOKEN_EOF) {
+        printf("%06zu | %04zu | %-24s | \\0\n", token->line, token->column, translate_token_type(token->type));
+        return;
+    }
+
+    if (token->type == TOKEN_EOL) {
+        printf("%06zu | %04zu | %-24s | \\n\n", token->line, token->column, translate_token_type(token->type));
+        return;
+    }
+
+    printf("%06zu | %04zu | %-24s | %.*s\n", token->line, token->column,
+           translate_token_type(token->type), (int) token->length, token->start);
+}
+
+void lexer_print(Lexer *lexer)
+{
+    while (true) {
+        Token token = lexer_scan_token(lexer);
+        print_token(&token);
+
+        if (token.type == TOKEN_EOF) {
+            break;
+        }
+    }
+}
+
+const char *translate_token_type(TokenType type) {
+    assert(COUNT_TOKENS == 55);
+    switch (type) {
+        case TOKEN_EOF:
+            return "TOKEN_EOF";
+        case TOKEN_ERROR:
+            return "TOKEN_ERROR";
+        case TOKEN_EOL:
+            return "TOKEN_EOL";
+        case TOKEN_LEFT_PAREN:
+            return "TOKEN_LEFT_PAREN";
+        case TOKEN_RIGHT_PAREN:
+            return "TOKEN_RIGHT_PAREN";
+        case TOKEN_LEFT_BRACE:
+            return "TOKEN_LEFT_BRACE";
+        case TOKEN_RIGHT_BRACE:
+            return "TOKEN_RIGHT_BRACE";
+        case TOKEN_LEFT_BRACKET:
+            return "TOKEN_LEFT_BRACKET";
+        case TOKEN_RIGHT_BRACKET:
+            return "TOKEN_RIGHT_BRACKET";
+        case TOKEN_DOT:
+            return "TOKEN_DOT";
+        case TOKEN_COMMA:
+            return "TOKEN_COMMA";
+        case TOKEN_COLON:
+            return "TOKEN_COLON";
+        case TOKEN_PLUS:
+            return "TOKEN_PLUS";
+        case TOKEN_PLUS_ASSIGN:
+            return "TOKEN_PLUS_ASSIGN";
+        case TOKEN_MINUS:
+            return "TOKEN_MINUS";
+        case TOKEN_MINUS_ASSIGN:
+            return "TOKEN_MINUS_ASSIGN";
+        case TOKEN_RIGHT_ARROW:
+            return "TOKEN_RIGHT_ARROW";
+        case TOKEN_STAR:
+            return "TOKEN_STAR";
+        case TOKEN_STAR_ASSIGN:
+            return "TOKEN_STAR_ASSIGN";
+        case TOKEN_SLASH:
+            return "TOKEN_SLASH";
+        case TOKEN_SLASH_ASSIGN:
+            return "TOKEN_SLASH_ASSIGN";
+        case TOKEN_AT:
+            return "TOKEN_AT";
+        case TOKEN_NOT:
+            return "TOKEN_NOT";
+        case TOKEN_NOT_EQUAL:
+            return "TOKEN_NOT_EQUAL";
+        case TOKEN_ASSIGN:
+            return "TOKEN_ASSIGN";
+        case TOKEN_EQUAL:
+            return "TOKEN_EQUAL";
+        case TOKEN_GREATER:
+            return "TOKEN_GREATER";
+        case TOKEN_GREATER_EQUAL:
+            return "TOKEN_GREATER_EQUAL";
+        case TOKEN_LESS:
+            return "TOKEN_LESS";
+        case TOKEN_LESS_EQUAL:
+            return "TOKEN_LESS_EQUAL";
+        case TOKEN_DIV:
+            return "TOKEN_DIV";
+        case TOKEN_PIPE:
+            return "TOKEN_PIPE";
+        case TOKEN_OR:
+            return "TOKEN_OR";
+        case TOKEN_AND:
+            return "TOKEN_AND";
+        case TOKEN_KEY_PACKAGE:
+            return "TOKEN_KEY_PACKAGE";
+        case TOKEN_KEY_IMPORT:
+            return "TOKEN_KEY_IMPORT";
+        case TOKEN_KEY_STRUCT:
+            return "TOKEN_KEY_STRUCT";
+        case TOKEN_KEY_SELF:
+            return "TOKEN_KEY_SELF";
+        case TOKEN_KEY_LET:
+            return "TOKEN_KEY_LET";
+        case TOKEN_KEY_NIL:
+            return "TOKEN_KEY_NIL";
+        case TOKEN_KEY_FN:
+            return "TOKEN_KEY_FN";
+        case TOKEN_KEY_RETURN:
+            return "TOKEN_KEY_RETURN";
+        case TOKEN_KEY_IF:
+            return "TOKEN_KEY_IF";
+        case TOKEN_KEY_ELSE:
+            return "TOKEN_KEY_ELSE";
+        case TOKEN_KEY_WHILE:
+            return "TOKEN_KEY_WHILE";
+        case TOKEN_KEY_FOR:
+            return "TOKEN_KEY_FOR";
+        case TOKEN_KEY_TRUE:
+            return "TOKEN_KEY_TRUE";
+        case TOKEN_KEY_FALSE:
+            return "TOKEN_KEY_FALSE";
+        case TOKEN_KEY_MATCH:
+            return "TOKEN_KEY_MATCH";
+        case TOKEN_KEY_WITH:
+            return "TOKEN_KEY_WITH";
+        case TOKEN_KEY_DUMP:
+            return "TOKEN_KEY_DUMP";
+        case TOKEN_IDENTIFIER:
+            return "TOKEN_IDENTIFIER";
+        case TOKEN_LIT_STRING:
+            return "TOKEN_LIT_STRING";
+        case TOKEN_LIT_REAL:
+            return "TOKEN_LIT_REAL";
+        case TOKEN_LIT_INT:
+            return "TOKEN_LIT_INT";
+        default:
+            return "UNKNOWN_TOKEN";
+    }
 }

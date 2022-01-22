@@ -12,9 +12,9 @@ typedef enum {
 
     TOKEN_DOT, TOKEN_COMMA, TOKEN_COLON, // . , :
 
-    TOKEN_PLUS, TOKEN_MINUS, TOKEN_RIGHT_ARROW, // + - ->
-    TOKEN_STAR, TOKEN_SLASH, // * /
-    TOKEN_AT,
+    TOKEN_PLUS, TOKEN_PLUS_ASSIGN, TOKEN_MINUS, TOKEN_MINUS_ASSIGN, TOKEN_RIGHT_ARROW, // + - ->
+    TOKEN_STAR, TOKEN_STAR_ASSIGN, TOKEN_SLASH, TOKEN_SLASH_ASSIGN, // * /
+    TOKEN_AT, // @
 
     TOKEN_NOT, TOKEN_NOT_EQUAL, // ! !=
     TOKEN_ASSIGN, TOKEN_EQUAL, // = ==
@@ -34,7 +34,7 @@ typedef enum {
 
     TOKEN_IDENTIFIER, TOKEN_LIT_STRING, TOKEN_LIT_REAL, TOKEN_LIT_INT,
 
-    TOKEN_COUNT
+    COUNT_TOKENS
 } TokenType;
 
 typedef struct {
@@ -46,6 +46,7 @@ typedef struct {
 } Token;
 
 typedef struct {
+    const char *source;
     const char *start;
     const char *current;
     size_t line;
@@ -53,7 +54,12 @@ typedef struct {
 } Lexer;
 
 void lexer_init(Lexer *lexer, const char *source);
+void lexer_reset(Lexer *lexer);
 
 Token lexer_scan_token(Lexer *lexer);
+
+void lexer_print(Lexer *lexer);
+
+const char *translate_token_type(TokenType type);
 
 #endif //SKARD_LEXER_H

@@ -16,6 +16,8 @@ typedef struct {
     } as;
 } Value;
 
+Value make_value_real(SkReal real);
+
 void print_value(Value value);
 
 typedef struct {

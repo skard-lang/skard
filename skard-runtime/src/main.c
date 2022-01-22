@@ -27,5 +27,10 @@ int main(int argc, char **argv)
 
     vm_free(&vm);
 
+    printf("Test tokenize...\n");
+    Compiler compiler;
+    Chunk chunk;
+    compiler_compile_file(&compiler, "examples/basic/00_dump.sk", &chunk);
+
     return 0;
 }

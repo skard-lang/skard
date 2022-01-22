@@ -20,6 +20,7 @@ This is an implementation project built on top of **skard-lib** that serves as a
 
  - [x] Custom basic VM
  - [x] Lexing
+ - [x] Generating AST
  - [ ] Parsing
  - [ ] Turing complete
  - [ ] ...

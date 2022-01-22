@@ -13,6 +13,7 @@
 #include "chunk.h"
 #include "vm.h"
 #include "debug.h"
+#include "compiler.h"
 
 
 #endif //SKARD_SKARD_H

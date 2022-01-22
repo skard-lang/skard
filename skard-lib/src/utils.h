@@ -15,6 +15,9 @@ void *allocate(size_t new_size);
 #define SKARD_FREE_ARRAY(type, pointer) \
     (type *) reallocate(pointer, 0)
 
+#define SKARD_ALLOCATE(type) \
+    (type *) allocate(sizeof(type));
+
 char *read_file(const char *filename);
 
 #endif //SKARD_UTILS_H

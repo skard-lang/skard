@@ -4,6 +4,13 @@
 
 #include "utils.h"
 
+
+Value make_value_real(SkReal real)
+{
+    return (Value) { .type = VAL_REAL, .as.sk_real = real };
+}
+
+
 void print_value(Value value)
 {
     switch (value.type) {
