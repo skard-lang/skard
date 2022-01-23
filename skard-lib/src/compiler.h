@@ -13,6 +13,7 @@ typedef enum {
     OTOR_STAR,
     OTOR_SLASH,
     OTOR_DIV,
+    COUNT_OTOR,
 } ASTOperator;
 
 const char *ast_operator_translate(ASTOperator operator);
@@ -41,6 +42,7 @@ typedef enum {
     AST_EXPR_UNARY,
     AST_EXPR_BINARY,
     AST_EXPR_GROUPING,
+    COUNT_AST_EXPR,
 } ASTExpressionKind;
 
 typedef struct {
@@ -56,6 +58,7 @@ typedef struct {
 
 typedef enum {
     AST_NODE_EXPRESSION,
+    COUNT_AST_NODE,
 } ASTNodeKind;
 
 typedef struct {
@@ -65,7 +68,7 @@ typedef struct {
     } as;
     size_t line;
     size_t column;
-} ASTNode; // TODO: extract expression type
+} ASTNode;
 
 void ast_node_free(ASTNode *node);
 

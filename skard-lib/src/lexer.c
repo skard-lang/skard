@@ -424,7 +424,7 @@ void lexer_print(Lexer *lexer)
 }
 
 const char *translate_token_type(TokenType type) {
-    assert(COUNT_TOKENS == 55);
+    assert((COUNT_TOKENS == 55) && "TokenType enum translating must be exhaustive");
     switch (type) {
         case TOKEN_EOF:
             return "TOKEN_EOF";

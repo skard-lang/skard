@@ -65,6 +65,8 @@ void skard_type_print(SkardType *skard_type)
         case TYPE_INT:
         case TYPE_INVALID:
             printf("%s", skard_type_translate(skard_type));
+        default:
+            break;
     }
 }
 
@@ -80,6 +82,8 @@ const char *skard_type_translate(SkardType *skard_type)
             return "Real";
         case TYPE_INT:
             return "Int";
+        default:
+            break;
     }
 
     assert(false);

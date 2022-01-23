@@ -8,6 +8,7 @@
 
 const char *ast_operator_translate(ASTOperator operator)
 {
+    assert((COUNT_OTOR == 5) && "ASTOperator enum translation must be exhaustive");
     switch (operator) {
         case OTOR_PLUS:
             return "+";
@@ -19,10 +20,11 @@ const char *ast_operator_translate(ASTOperator operator)
             return "/";
         case OTOR_DIV:
             return "|";
+        default:
+            break;
     }
 
-    assert(false);
-    return NULL;
+    return NULL; // Unreachable
 }
 
 
@@ -30,6 +32,7 @@ static void ast_node_expression_free(ASTNodeExpression *node);
 
 static void ast_node_expression_free(ASTNodeExpression *node)
 {
+    assert((COUNT_AST_EXPR == 4) && "ASTNodeExpression enum freeing must be exhaustive");
     switch (node->kind) {
         case AST_EXPR_VALUE:
             break;
@@ -44,19 +47,20 @@ static void ast_node_expression_free(ASTNodeExpression *node)
             ast_node_free((ASTNode *) node->as.node_grouping.child);
             break;
         default:
-            assert(false); // Unreachable
+            break; // Unreachable
     }
 }
 
 
 void ast_node_free(ASTNode *node)
 {
+    assert((COUNT_AST_NODE == 1) && "ASTNodeKind enum freeing must be exhaustive");
     switch (node->kind) {
         case AST_NODE_EXPRESSION:
             ast_node_expression_free(&node->as.node_expression);
             break;
         default:
-            assert(false); // Unreachable
+            break; // Unreachable
     }
 
     free(node);
@@ -86,6 +90,7 @@ static void ast_expression_value_print(ASTExpressionValue *value)
 
 static void ast_expression_unary_print(ASTExpressionUnary *unary)
 {
+    assert((COUNT_OTOR == 5) && "ASTOperator enum unary printing must be exhaustive");
     switch (unary->operator) {
         case OTOR_MINUS:
             printf("-");
@@ -94,13 +99,14 @@ static void ast_expression_unary_print(ASTExpressionUnary *unary)
             ast_print_invalid();
             break;
     }
-    printf(" ");
 
+    printf(" ");
     ast_node_print((ASTNode *) unary->child, false);
 }
 
 static void ast_expression_binary_print(ASTExpressionBinary *binary)
 {
+    assert((COUNT_OTOR == 5) && "ASTOperator enum binary printing must be exhaustive");
     switch (binary->operator) {
         case OTOR_PLUS:
             printf("+");
@@ -116,34 +122,30 @@ static void ast_expression_binary_print(ASTExpressionBinary *binary)
             break;
         case OTOR_DIV:
             printf("|");
+            break;
+        default:
+            ast_print_invalid();
+            break;
     }
-    printf(" ");
 
+    printf(" ");
     ast_node_print((ASTNode *) binary->first, false);
     ast_node_print((ASTNode *) binary->second, false);
 }
 
 static void ast_expression_grouping_print(ASTExpressionGrouping *grouping)
 {
-    printf("gr ");
+    printf("(x) ");
     ast_node_print((ASTNode *) grouping->child, false);
 }
 
 
 static void ast_node_expression_print(ASTNodeExpression *expression)
 {
-    switch (expression->type.type) {
-        case TYPE_UNKNOWN:
-            printf("UNKNOWN");
-            break;
-        case TYPE_REAL:
-            printf("REAL");
-            break;
-        default:
-            assert(false); // Unreachable
-    }
+    skard_type_print(&expression->type);
     printf(" ");
 
+    assert((COUNT_AST_EXPR == 4) && "ASTExpressionKind enum expression printing must be exhaustive");
     switch (expression->kind) {
         case AST_EXPR_VALUE:
             ast_expression_value_print(&expression->as.node_value);
@@ -158,7 +160,7 @@ static void ast_node_expression_print(ASTNodeExpression *expression)
             ast_expression_grouping_print(&expression->as.node_grouping);
             break;
         default:
-            assert(false); // Unreachable
+            break; // Unreachable
     }
 }
 
@@ -167,12 +169,13 @@ void ast_node_print(ASTNode *node, bool end_line)
 {
     printf("(");
 
+    assert((COUNT_AST_NODE == 1) && "ASTNodeKind enum node printing must be exhaustive");
     switch (node->kind) {
         case AST_NODE_EXPRESSION:
             ast_node_expression_print(&node->as.node_expression);
             break;
         default:
-            assert(false); // Unreachable
+            break; // Unreachable
     }
 
     printf(")");
@@ -452,6 +455,7 @@ static ASTNode *compiler_parse_binary(Compiler *compiler, ASTNode *first)
     ASTNode *second = compiler_parse_precedence(compiler, (Precedence) (rule->precedence + 1));
 
     ASTOperator ast_operator;
+    assert((COUNT_TOKENS == 55) && "TokenType enum binary parsing must be exhaustive");
     switch (operator_type) {
         case TOKEN_PLUS:
             ast_operator = OTOR_PLUS;
@@ -469,7 +473,6 @@ static ASTNode *compiler_parse_binary(Compiler *compiler, ASTNode *first)
             ast_operator = OTOR_DIV;
             break;
         default:
-            assert(false); // TODO: Handle unreachable code in a better way
             return NULL; // Unreachable
     }
 
@@ -482,12 +485,12 @@ static ASTNode *compiler_parse_unary(Compiler *compiler)
     ASTNode *child = compiler_parse_precedence(compiler, PREC_UNARY);
 
     ASTOperator ast_operator;
+    assert((COUNT_TOKENS == 55) && "TokenType enum unary parsing must be exhaustive");
     switch (operator_type) {
         case TOKEN_MINUS:
             ast_operator = OTOR_MINUS;
             break;
         default:
-            assert(false); // TODO: Handle unreachable code in a better way
             return NULL; // Unreachable
     }
 
@@ -521,6 +524,7 @@ static SkardType compiler_infer_type_unary(Compiler *compiler, ASTExpressionUnar
     SkardType child_type = compiler_get_expression_type(compiler, child_expression);
 
     ASTOperator operator = node->operator;
+    assert((COUNT_OTOR == 5) && "ASTOperator enum unary infering must be exhaustive");
     switch (operator) {
         case OTOR_MINUS:
             if (is_skard_type_of_kind(&child_type, TYPE_REAL)) {
@@ -548,6 +552,7 @@ static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBin
     SkardType second_type = compiler_get_expression_type(compiler, second_expression);
 
     ASTOperator operator = node->operator;
+    assert((COUNT_OTOR == 5) && "ASTOperator enum binary infering must be exhaustive");
     switch (operator) {
         case OTOR_PLUS:
         case OTOR_MINUS:
@@ -579,10 +584,12 @@ static SkardType compiler_infer_type_grouping(Compiler *compiler, ASTExpressionG
 }
 
 
+// TODO: Implement infering and type checking with rules in similar way as parsing
 static SkardType compiler_infer_type_expression(Compiler *compiler, ASTNodeExpression *node)
 {
     (void) compiler;
 
+    assert((COUNT_AST_EXPR == 4) && "ASTExpressionKind expression infering must be exhaustive");
     switch (node->kind) {
         case AST_EXPR_VALUE:
             return make_skard_type_invalid();
@@ -592,6 +599,8 @@ static SkardType compiler_infer_type_expression(Compiler *compiler, ASTNodeExpre
             return compiler_infer_type_binary(compiler, &node->as.node_binary);
         case AST_EXPR_GROUPING:
             return compiler_infer_type_grouping(compiler, &node->as.node_grouping);
+        default:
+            break;
     }
 
     fprintf(stderr, "ERROR: Unknown expression kind.");
@@ -632,6 +641,8 @@ static bool compiler_typecheck_ast(Compiler *compiler, ASTNode *node)
     switch (node->kind) {
         case AST_NODE_EXPRESSION:
             return compiler_typecheck_expression(compiler, &node->as.node_expression);
+        default:
+            break;
     }
 
     fprintf(stderr, "ERROR: Unknown node kind.\n");

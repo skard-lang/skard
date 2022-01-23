@@ -14,6 +14,7 @@ typedef enum {
     TYPE_INVALID,
     TYPE_REAL,
     TYPE_INT,
+    COUNT_TYPE,
 } TypeKind;
 
 typedef struct {
