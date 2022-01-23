@@ -2,25 +2,44 @@
 #define SKARD_VALUE_H
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdint.h>
 
 typedef double SkReal;
+typedef int64_t SkInt;
 
 typedef enum {
-    VAL_UNKNOWN,
-    VAL_REAL,
-} ValueType;
+    TYPE_UNKNOWN,
+    TYPE_INVALID,
+    TYPE_REAL,
+    TYPE_INT,
+} TypeKind;
 
 typedef struct {
-    ValueType type;
+    TypeKind type;
 } SkardType;
 
+SkardType make_skard_type_simple(TypeKind type);
 SkardType make_skard_type_unknown(void);
-SkardType make_skard_type_simple(ValueType type);
+SkardType make_skard_type_invalid();
+SkardType make_skard_type_real(void);
+SkardType make_skard_type_int(void);
+SkardType copy_skard_type(SkardType *source);
+
+bool is_skard_type_of_kind(SkardType *skard_type, TypeKind type);
+bool is_skard_type_unknown(SkardType *skard_type);
+bool is_skard_type_invalid(SkardType *skard_type);
+
+void skard_type_print(SkardType *skard_type);
+
+const char *skard_type_translate(SkardType *skard_type);
 
 typedef struct {
-    ValueType type;
+    TypeKind type;
     union {
         SkReal sk_real;
+        SkInt sk_int;
     } as;
 } Value;
 

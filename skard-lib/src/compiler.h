@@ -15,6 +15,8 @@ typedef enum {
     OTOR_DIV,
 } ASTOperator;
 
+const char *ast_operator_translate(ASTOperator operator);
+
 typedef struct {
     Value value;
 } ASTExpressionValue;
@@ -61,6 +63,8 @@ typedef struct {
     union {
         ASTNodeExpression node_expression;
     } as;
+    size_t line;
+    size_t column;
 } ASTNode; // TODO: extract expression type
 
 void ast_node_free(ASTNode *node);
@@ -103,5 +107,6 @@ void compiler_init(Compiler *compiler);
 bool compiler_compile_file(Compiler *compiler, const char *filename, Chunk *chunk);
 bool compiler_compile_source(Compiler *compiler, const char *source, Chunk *chunk);
 bool compiler_generate_ast(Compiler *compiler);
+bool compiler_generate_bytecode(Compiler *compiler, ASTNode *node);
 
 #endif //SKARD_COMPILER_H

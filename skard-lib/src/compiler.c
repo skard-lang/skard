@@ -6,6 +6,26 @@
 #include "utils.h"
 
 
+const char *ast_operator_translate(ASTOperator operator)
+{
+    switch (operator) {
+        case OTOR_PLUS:
+            return "+";
+        case OTOR_MINUS:
+            return "-";
+        case OTOR_STAR:
+            return "*";
+        case OTOR_SLASH:
+            return "/";
+        case OTOR_DIV:
+            return "|";
+    }
+
+    assert(false);
+    return NULL;
+}
+
+
 static void ast_node_expression_free(ASTNodeExpression *node);
 
 static void ast_node_expression_free(ASTNodeExpression *node)
@@ -23,6 +43,8 @@ static void ast_node_expression_free(ASTNodeExpression *node)
         case AST_EXPR_GROUPING:
             ast_node_free((ASTNode *) node->as.node_grouping.child);
             break;
+        default:
+            assert(false); // Unreachable
     }
 }
 
@@ -32,6 +54,9 @@ void ast_node_free(ASTNode *node)
     switch (node->kind) {
         case AST_NODE_EXPRESSION:
             ast_node_expression_free(&node->as.node_expression);
+            break;
+        default:
+            assert(false); // Unreachable
     }
 
     free(node);
@@ -108,12 +133,14 @@ static void ast_expression_grouping_print(ASTExpressionGrouping *grouping)
 static void ast_node_expression_print(ASTNodeExpression *expression)
 {
     switch (expression->type.type) {
-        case VAL_UNKNOWN:
+        case TYPE_UNKNOWN:
             printf("UNKNOWN");
             break;
-        case VAL_REAL:
+        case TYPE_REAL:
             printf("REAL");
             break;
+        default:
+            assert(false); // Unreachable
     }
     printf(" ");
 
@@ -130,6 +157,8 @@ static void ast_node_expression_print(ASTNodeExpression *expression)
         case AST_EXPR_GROUPING:
             ast_expression_grouping_print(&expression->as.node_grouping);
             break;
+        default:
+            assert(false); // Unreachable
     }
 }
 
@@ -141,6 +170,9 @@ void ast_node_print(ASTNode *node, bool end_line)
     switch (node->kind) {
         case AST_NODE_EXPRESSION:
             ast_node_expression_print(&node->as.node_expression);
+            break;
+        default:
+            assert(false); // Unreachable
     }
 
     printf(")");
@@ -184,14 +216,14 @@ bool compiler_compile_source(Compiler *compiler, const char *source, Chunk *chun
 }
 
 static ASTNode *make_ast_node_expression(ASTNodeExpression node_expression);
-static ASTNode *make_ast_node_value(Value value);
+static ASTNode *make_ast_node_value(Value value, SkardType type);
 static ASTNode *make_ast_node_unary(ASTNode *child, ASTOperator operator);
 static ASTNode *make_ast_node_binary(ASTNode *first, ASTNode *second, ASTOperator operator);
 static ASTNode *make_ast_node_grouping(ASTNode *child);
 
-static void compiler_handle_error_at_current(Compiler *compiler, const char *message);
-static void compiler_handle_error_at_previous(Compiler *compiler, const char *message);
-static void compiler_handle_error(Compiler *compiler, Token *token, const char *message);
+static void compiler_parse_error_at_current(Compiler *compiler, const char *message);
+static void compiler_parse_error_at_previous(Compiler *compiler, const char *message);
+static void compiler_parse_error(Compiler *compiler, Token *token, const char *message);
 static void compiler_advance(Compiler *compiler);
 static void compiler_consume(Compiler *compiler, TokenType type, const char *message);
 
@@ -210,14 +242,16 @@ static ASTNode *make_ast_node_expression(ASTNodeExpression node_expression)
     ASTNode *node = SKARD_ALLOCATE(ASTNode);
     node->kind = AST_NODE_EXPRESSION;
     node->as.node_expression = node_expression;
+    node->line = 0;
+    node->column = 0;
     return node;
 }
 
-static ASTNode *make_ast_node_value(Value value)
+static ASTNode *make_ast_node_value(Value value, SkardType type)
 {
     ASTNodeExpression node_expression;
     node_expression.kind = AST_EXPR_VALUE;
-    node_expression.type = make_skard_type_unknown();
+    node_expression.type = type;
     node_expression.as.node_value = (ASTExpressionValue) { .value = value };
 
     return make_ast_node_expression(node_expression);
@@ -257,17 +291,17 @@ static ASTNode *make_ast_node_grouping(ASTNode *child)
 }
 
 
-static void compiler_handle_error_at_current(Compiler *compiler, const char *message)
+static void compiler_parse_error_at_current(Compiler *compiler, const char *message)
 {
-    compiler_handle_error(compiler, &compiler->current, message);
+    compiler_parse_error(compiler, &compiler->current, message);
 }
 
-static void compiler_handle_error_at_previous(Compiler *compiler, const char *message)
+static void compiler_parse_error_at_previous(Compiler *compiler, const char *message)
 {
-    compiler_handle_error(compiler, &compiler->previous, message);
+    compiler_parse_error(compiler, &compiler->previous, message);
 }
 
-static void compiler_handle_error(Compiler *compiler, Token *token, const char *message)
+static void compiler_parse_error(Compiler *compiler, Token *token, const char *message)
 {
     if (compiler->is_panic) {
         return;
@@ -298,7 +332,7 @@ static void compiler_advance(Compiler *compiler)
             break;
         }
 
-        compiler_handle_error_at_current(compiler, compiler->current.start);
+        compiler_parse_error_at_current(compiler, compiler->current.start);
     }
 }
 
@@ -309,7 +343,7 @@ static void compiler_consume(Compiler *compiler, TokenType type, const char *mes
         return;
     }
 
-    compiler_handle_error_at_current(compiler, message);
+    compiler_parse_error_at_current(compiler, message);
 }
 
 
@@ -384,7 +418,7 @@ static ASTNode *compiler_parse_precedence(Compiler *compiler, Precedence precede
     compiler_advance(compiler);
     ParseFnPrefix prefix_rule = get_parse_rule(compiler->previous.type)->prefix;
     if (prefix_rule == NULL) {
-        compiler_handle_error_at_previous(compiler, "Expected expression.");
+        compiler_parse_error_at_previous(compiler, "Expected expression.");
         return NULL;
     }
 
@@ -463,8 +497,145 @@ static ASTNode *compiler_parse_unary(Compiler *compiler)
 static ASTNode *compiler_parse_real(Compiler *compiler)
 {
     SkReal real = strtod(compiler->previous.start, NULL);
-    ASTNode *node = make_ast_node_value(make_value_real(real));
+    ASTNode *node = make_ast_node_value(make_value_real(real), make_skard_type_real());
     return node;
+}
+
+
+static SkardType compiler_infer_type_unary(Compiler *compiler, ASTExpressionUnary *node);
+static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBinary *node);
+static SkardType compiler_infer_type_grouping(Compiler *compiler, ASTExpressionGrouping *node);
+
+static SkardType compiler_infer_type_expression(Compiler *compiler, ASTNodeExpression *node);
+
+static SkardType compiler_get_expression_type(Compiler *compiler, ASTNodeExpression *node);
+
+static bool compiler_typecheck_expression(Compiler *compiler, ASTNodeExpression *node);
+
+static bool compiler_typecheck_ast(Compiler *compiler, ASTNode *node);
+
+
+static SkardType compiler_infer_type_unary(Compiler *compiler, ASTExpressionUnary *node)
+{
+    ASTNodeExpression *child_expression = &((ASTNode *) node->child)->as.node_expression;
+    SkardType child_type = compiler_get_expression_type(compiler, child_expression);
+
+    ASTOperator operator = node->operator;
+    switch (operator) {
+        case OTOR_MINUS:
+            if (is_skard_type_of_kind(&child_type, TYPE_REAL)) {
+                return make_skard_type_real();
+            }
+            if (is_skard_type_of_kind(&child_type, TYPE_INT)) {
+                return make_skard_type_int();
+            }
+            fprintf(stderr, "ERROR: Invalid operand of type '%s' to unary '%s'\n", skard_type_translate(&child_type),
+                    ast_operator_translate(operator));
+            break;
+        default:
+            break;
+    }
+
+    fprintf(stderr, "ERROR: Could not infer unary expression type.\n");
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBinary *node)
+{
+    ASTNodeExpression *first_expression = &((ASTNode *) node->first)->as.node_expression;
+    ASTNodeExpression *second_expression = &((ASTNode *) node->second)->as.node_expression;
+    SkardType first_type = compiler_get_expression_type(compiler, first_expression);
+    SkardType second_type = compiler_get_expression_type(compiler, second_expression);
+
+    ASTOperator operator = node->operator;
+    switch (operator) {
+        case OTOR_PLUS:
+        case OTOR_MINUS:
+        case OTOR_STAR:
+            if (is_skard_type_of_kind(&first_type, TYPE_INT) && is_skard_type_of_kind(&second_type, TYPE_INT)) {
+                return make_skard_type_int();
+            }
+            if (is_skard_type_of_kind(&first_type, TYPE_REAL) || is_skard_type_of_kind(&second_type, TYPE_REAL)) {
+                return make_skard_type_real();
+            }
+            return make_skard_type_invalid();
+        case OTOR_SLASH:
+            return make_skard_type_real();
+        case OTOR_DIV:
+            return make_skard_type_int();
+        default:
+            break;
+    }
+
+    fprintf(stderr, "ERROR: Could not infer binary expression type.\n");
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_grouping(Compiler *compiler, ASTExpressionGrouping *node)
+{
+    ASTNodeExpression *child_expression = &((ASTNode *) node->child)->as.node_expression;
+    SkardType child_type = compiler_get_expression_type(compiler, child_expression);
+    return copy_skard_type(&child_type);
+}
+
+
+static SkardType compiler_infer_type_expression(Compiler *compiler, ASTNodeExpression *node)
+{
+    (void) compiler;
+
+    switch (node->kind) {
+        case AST_EXPR_VALUE:
+            return make_skard_type_invalid();
+        case AST_EXPR_UNARY:
+            return compiler_infer_type_unary(compiler, &node->as.node_unary);
+        case AST_EXPR_BINARY:
+            return compiler_infer_type_binary(compiler, &node->as.node_binary);
+        case AST_EXPR_GROUPING:
+            return compiler_infer_type_grouping(compiler, &node->as.node_grouping);
+    }
+
+    fprintf(stderr, "ERROR: Unknown expression kind.");
+    return make_skard_type_invalid();
+}
+
+
+static SkardType compiler_get_expression_type(Compiler *compiler, ASTNodeExpression *node)
+{
+    if (is_skard_type_unknown(&node->type)) {
+        SkardType type = compiler_infer_type_expression(compiler, node);
+        node->type = type;
+    }
+
+    return node->type;
+}
+
+
+static bool compiler_typecheck_expression(Compiler *compiler, ASTNodeExpression *node)
+{
+    SkardType expression_type = compiler_get_expression_type(compiler, node);
+    if (is_skard_type_invalid(&expression_type)) {
+        fprintf(stderr, "ERROR: Invalid expression type.\n");
+        return false;
+    }
+
+    if (is_skard_type_unknown(&expression_type)) {
+        fprintf(stderr, "ERROR: Could not infer expression type.\n");
+        return false;
+    }
+
+    return true;
+}
+
+
+static bool compiler_typecheck_ast(Compiler *compiler, ASTNode *node)
+{
+    switch (node->kind) {
+        case AST_NODE_EXPRESSION:
+            return compiler_typecheck_expression(compiler, &node->as.node_expression);
+    }
+
+    fprintf(stderr, "ERROR: Unknown node kind.\n");
+    return false;
 }
 
 
@@ -476,8 +647,19 @@ bool compiler_generate_ast(Compiler *compiler)
 
     if (ast != NULL) {
         ast_node_print(ast, true);
+        compiler_typecheck_ast(compiler, ast);
+        ast_node_print(ast, true);
         ast_node_free(ast);
     }
 
     return !compiler->is_error;
+}
+
+
+bool compiler_generate_bytecode(Compiler *compiler, ASTNode *node)
+{
+    (void) compiler;
+    (void) node;
+
+    return false;
 }
