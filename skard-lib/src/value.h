@@ -6,8 +6,16 @@
 typedef double SkReal;
 
 typedef enum {
+    VAL_UNKNOWN,
     VAL_REAL,
 } ValueType;
+
+typedef struct {
+    ValueType type;
+} SkardType;
+
+SkardType make_skard_type_unknown(void);
+SkardType make_skard_type_simple(ValueType type);
 
 typedef struct {
     ValueType type;

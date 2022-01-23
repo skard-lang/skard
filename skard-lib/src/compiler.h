@@ -11,45 +11,57 @@ typedef enum {
     OTOR_PLUS,
     OTOR_MINUS,
     OTOR_STAR,
-    OTOR_SLASH
+    OTOR_SLASH,
+    OTOR_DIV,
 } ASTOperator;
 
 typedef struct {
     Value value;
-} ASTNodeValue;
+} ASTExpressionValue;
 
 typedef struct {
     struct ASTNode *child;
     ASTOperator operator;
-} ASTNodeUnary;
+} ASTExpressionUnary;
 
 typedef struct {
     struct ASTNode *first;
     struct ASTNode *second;
     ASTOperator operator;
-} ASTNodeBinary;
+} ASTExpressionBinary;
 
 typedef struct {
     struct ASTNode *child;
-} ASTNodeGrouping;
+} ASTExpressionGrouping;
 
 typedef enum {
-    AST_NODE_VALUE,
-    AST_NODE_UNARY,
-    AST_NODE_BINARY,
-    AST_NODE_GROUPING,
-} ASTNodeType;
+    AST_EXPR_VALUE,
+    AST_EXPR_UNARY,
+    AST_EXPR_BINARY,
+    AST_EXPR_GROUPING,
+} ASTExpressionKind;
 
 typedef struct {
-    ASTNodeType node_type;
-    ValueType value_type;
+    ASTExpressionKind kind;
+    SkardType type;
     union {
-        ASTNodeValue node_value;
-        ASTNodeUnary node_unary;
-        ASTNodeBinary node_binary;
-        ASTNodeGrouping node_grouping;
+        ASTExpressionValue node_value;
+        ASTExpressionUnary node_unary;
+        ASTExpressionBinary node_binary;
+        ASTExpressionGrouping node_grouping;
     } as;
-} ASTNode;
+} ASTNodeExpression;
+
+typedef enum {
+    AST_NODE_EXPRESSION,
+} ASTNodeKind;
+
+typedef struct {
+    ASTNodeKind kind;
+    union {
+        ASTNodeExpression node_expression;
+    } as;
+} ASTNode; // TODO: extract expression type
 
 void ast_node_free(ASTNode *node);
 

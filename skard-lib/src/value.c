@@ -5,6 +5,20 @@
 #include "utils.h"
 
 
+SkardType make_skard_type_unknown(void)
+{
+    SkardType skard_type = (SkardType) { .type = VAL_UNKNOWN };
+    return skard_type;
+}
+
+SkardType make_skard_type_simple(ValueType type)
+{
+    SkardType skard_type;
+    skard_type.type = type;
+    return skard_type;
+}
+
+
 Value make_value_real(SkReal real)
 {
     return (Value) { .type = VAL_REAL, .as.sk_real = real };

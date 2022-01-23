@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     printf("Test tokenize...\n");
     Compiler compiler;
     Chunk chunk;
+    compiler_init(&compiler);
     compiler_compile_file(&compiler, "examples/basic/00_dump.sk", &chunk);
 
     return 0;

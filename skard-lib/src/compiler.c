@@ -1,54 +1,67 @@
 #include "compiler.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <assert.h>
 
 #include "utils.h"
 
 
-void ast_node_free(ASTNode *node)
+static void ast_node_expression_free(ASTNodeExpression *node);
+
+static void ast_node_expression_free(ASTNodeExpression *node)
 {
-    switch (node->node_type) {
-        case AST_NODE_VALUE:
+    switch (node->kind) {
+        case AST_EXPR_VALUE:
             break;
-        case AST_NODE_UNARY:
+        case AST_EXPR_UNARY:
             ast_node_free((ASTNode *) node->as.node_unary.child);
             break;
-        case AST_NODE_BINARY:
+        case AST_EXPR_BINARY:
             ast_node_free((ASTNode *) node->as.node_binary.first);
             ast_node_free((ASTNode *) node->as.node_binary.second);
             break;
-        case AST_NODE_GROUPING:
+        case AST_EXPR_GROUPING:
             ast_node_free((ASTNode *) node->as.node_grouping.child);
             break;
+    }
+}
+
+
+void ast_node_free(ASTNode *node)
+{
+    switch (node->kind) {
+        case AST_NODE_EXPRESSION:
+            ast_node_expression_free(&node->as.node_expression);
     }
 
     free(node);
 }
 
-static void ast_print_invalid();
 
-static void ast_node_print_value(ASTNodeValue value);
-static void ast_node_print_unary(ASTNodeUnary unary);
-static void ast_node_print_binary(ASTNodeBinary binary);
-static void ast_node_print_grouping(ASTNodeGrouping grouping);
+static void ast_print_invalid(void);
+
+static void ast_expression_value_print(ASTExpressionValue *value);
+static void ast_expression_unary_print(ASTExpressionUnary *unary);
+static void ast_expression_binary_print(ASTExpressionBinary *binary);
+static void ast_expression_grouping_print(ASTExpressionGrouping *grouping);
+
+static void ast_node_expression_print(ASTNodeExpression *expression);
 
 
-static void ast_print_invalid()
+static void ast_print_invalid(void)
 {
     printf("INVALID");
 }
 
 
-static void ast_node_print_value(ASTNodeValue value)
+static void ast_expression_value_print(ASTExpressionValue *value)
 {
-    print_value(value.value);
+    print_value(value->value);
 }
 
-static void ast_node_print_unary(ASTNodeUnary unary)
+static void ast_expression_unary_print(ASTExpressionUnary *unary)
 {
-    switch (unary.operator) {
+    switch (unary->operator) {
         case OTOR_MINUS:
             printf("-");
             break;
@@ -58,12 +71,12 @@ static void ast_node_print_unary(ASTNodeUnary unary)
     }
     printf(" ");
 
-    ast_node_print((ASTNode *) unary.child, false);
+    ast_node_print((ASTNode *) unary->child, false);
 }
 
-static void ast_node_print_binary(ASTNodeBinary binary)
+static void ast_expression_binary_print(ASTExpressionBinary *binary)
 {
-    switch (binary.operator) {
+    switch (binary->operator) {
         case OTOR_PLUS:
             printf("+");
             break;
@@ -76,17 +89,48 @@ static void ast_node_print_binary(ASTNodeBinary binary)
         case OTOR_SLASH:
             printf("/");
             break;
+        case OTOR_DIV:
+            printf("|");
     }
     printf(" ");
 
-    ast_node_print((ASTNode *) binary.first, false);
-    ast_node_print((ASTNode *) binary.second, false);
+    ast_node_print((ASTNode *) binary->first, false);
+    ast_node_print((ASTNode *) binary->second, false);
 }
 
-static void ast_node_print_grouping(ASTNodeGrouping grouping)
+static void ast_expression_grouping_print(ASTExpressionGrouping *grouping)
 {
     printf("gr ");
-    ast_node_print((ASTNode *) grouping.child, false);
+    ast_node_print((ASTNode *) grouping->child, false);
+}
+
+
+static void ast_node_expression_print(ASTNodeExpression *expression)
+{
+    switch (expression->type.type) {
+        case VAL_UNKNOWN:
+            printf("UNKNOWN");
+            break;
+        case VAL_REAL:
+            printf("REAL");
+            break;
+    }
+    printf(" ");
+
+    switch (expression->kind) {
+        case AST_EXPR_VALUE:
+            ast_expression_value_print(&expression->as.node_value);
+            break;
+        case AST_EXPR_UNARY:
+            ast_expression_unary_print(&expression->as.node_unary);
+            break;
+        case AST_EXPR_BINARY:
+            ast_expression_binary_print(&expression->as.node_binary);
+            break;
+        case AST_EXPR_GROUPING:
+            ast_expression_grouping_print(&expression->as.node_grouping);
+            break;
+    }
 }
 
 
@@ -94,26 +138,9 @@ void ast_node_print(ASTNode *node, bool end_line)
 {
     printf("(");
 
-    switch (node->value_type) {
-        case VAL_REAL:
-            printf("REAL");
-            break;
-    }
-    printf(" ");
-
-    switch (node->node_type) {
-        case AST_NODE_VALUE:
-            ast_node_print_value(node->as.node_value);
-            break;
-        case AST_NODE_UNARY:
-            ast_node_print_unary(node->as.node_unary);
-            break;
-        case AST_NODE_BINARY:
-            ast_node_print_binary(node->as.node_binary);
-            break;
-        case AST_NODE_GROUPING:
-            ast_node_print_grouping(node->as.node_grouping);
-            break;
+    switch (node->kind) {
+        case AST_NODE_EXPRESSION:
+            ast_node_expression_print(&node->as.node_expression);
     }
 
     printf(")");
@@ -156,10 +183,10 @@ bool compiler_compile_source(Compiler *compiler, const char *source, Chunk *chun
     return false;
 }
 
-
+static ASTNode *make_ast_node_expression(ASTNodeExpression node_expression);
 static ASTNode *make_ast_node_value(Value value);
-static ASTNode *make_ast_node_unary(ASTNode *child, ValueType type, ASTOperator operator);
-static ASTNode *make_ast_node_binary(ASTNode *first, ASTNode *second, ValueType type, ASTOperator operator);
+static ASTNode *make_ast_node_unary(ASTNode *child, ASTOperator operator);
+static ASTNode *make_ast_node_binary(ASTNode *first, ASTNode *second, ASTOperator operator);
 static ASTNode *make_ast_node_grouping(ASTNode *child);
 
 static void compiler_handle_error_at_current(Compiler *compiler, const char *message);
@@ -178,40 +205,55 @@ static ASTNode *compiler_parse_unary(Compiler *compiler);
 static ASTNode *compiler_parse_real(Compiler *compiler);
 
 
+static ASTNode *make_ast_node_expression(ASTNodeExpression node_expression)
+{
+    ASTNode *node = SKARD_ALLOCATE(ASTNode);
+    node->kind = AST_NODE_EXPRESSION;
+    node->as.node_expression = node_expression;
+    return node;
+}
+
 static ASTNode *make_ast_node_value(Value value)
 {
-    ASTNode *node = SKARD_ALLOCATE(ASTNode);
-    node->node_type = AST_NODE_VALUE;
-    node->value_type = value.type;
-    node->as.node_value = (ASTNodeValue) { .value = value };
-    return node;
+    ASTNodeExpression node_expression;
+    node_expression.kind = AST_EXPR_VALUE;
+    node_expression.type = make_skard_type_unknown();
+    node_expression.as.node_value = (ASTExpressionValue) { .value = value };
+
+    return make_ast_node_expression(node_expression);
 }
 
-static ASTNode *make_ast_node_unary(ASTNode *child, ValueType type, ASTOperator operator)
+static ASTNode *make_ast_node_unary(ASTNode *child, ASTOperator operator)
 {
-    ASTNode *node = SKARD_ALLOCATE(ASTNode);
-    node->node_type = AST_NODE_UNARY;
-    node->value_type = type;
-    node->as.node_unary = (ASTNodeUnary) { .child = (struct ASTNode *) child, .operator = operator };
-    return node;
+    ASTNodeExpression node_expression;
+    node_expression.kind = AST_EXPR_UNARY;
+    node_expression.type = make_skard_type_unknown();
+    node_expression.as.node_unary = (ASTExpressionUnary) { .child = (struct ASTNode *) child, .operator = operator };
+
+    return make_ast_node_expression(node_expression);
 }
 
-static ASTNode *make_ast_node_binary(ASTNode *first, ASTNode *second, ValueType type, ASTOperator operator)
+static ASTNode *make_ast_node_binary(ASTNode *first, ASTNode *second, ASTOperator operator)
 {
-    ASTNode *node = SKARD_ALLOCATE(ASTNode);
-    node->node_type = AST_NODE_BINARY;
-    node->value_type = type;
-    node->as.node_binary = (ASTNodeBinary) { .first = (struct ASTNode *) first, .second = (struct ASTNode *) second, .operator = operator };
-    return node;
+    ASTNodeExpression node_expression;
+    node_expression.kind = AST_EXPR_BINARY;
+    node_expression.type = make_skard_type_unknown();
+    node_expression.as.node_binary = (ASTExpressionBinary) {
+        .first = (struct ASTNode *) first,
+        .second = (struct ASTNode *) second,
+        .operator = operator };
+
+    return make_ast_node_expression(node_expression);
 }
 
 static ASTNode *make_ast_node_grouping(ASTNode *child)
 {
-    ASTNode *node = SKARD_ALLOCATE(ASTNode);
-    node->node_type = AST_NODE_GROUPING;
-    node->value_type = child->value_type;
-    node->as.node_grouping = (ASTNodeGrouping) { .child = (struct ASTNode *) child };
-    return node;
+    ASTNodeExpression node_expression;
+    node_expression.kind = AST_EXPR_GROUPING;
+    node_expression.type = make_skard_type_unknown();
+    node_expression.as.node_grouping = (ASTExpressionGrouping) { .child = (struct ASTNode *) child };
+
+    return make_ast_node_expression(node_expression);
 }
 
 
@@ -337,7 +379,7 @@ static ParseRule *get_parse_rule(TokenType type)
 }
 
 
-static ASTNode *compiler_parse_precedence(Compiler *compiler, Precedence precedence)
+static ASTNode *compiler_parse_precedence(Compiler *compiler, Precedence precedence) // TODO: add support for multiline expressions
 {
     compiler_advance(compiler);
     ParseFnPrefix prefix_rule = get_parse_rule(compiler->previous.type)->prefix;
@@ -375,37 +417,29 @@ static ASTNode *compiler_parse_binary(Compiler *compiler, ASTNode *first)
     ParseRule *rule = get_parse_rule(operator_type);
     ASTNode *second = compiler_parse_precedence(compiler, (Precedence) (rule->precedence + 1));
 
+    ASTOperator ast_operator;
     switch (operator_type) {
         case TOKEN_PLUS:
-            if (first->value_type == VAL_REAL && second->value_type == VAL_REAL) {
-                return make_ast_node_binary(first, second, VAL_REAL, OTOR_PLUS);
-            }
-
+            ast_operator = OTOR_PLUS;
             break;
         case TOKEN_MINUS:
-            if (first->value_type == VAL_REAL && second->value_type == VAL_REAL) {
-                return make_ast_node_binary(first, second, VAL_REAL, OTOR_MINUS);
-            }
-
+            ast_operator = OTOR_MINUS;
             break;
         case TOKEN_STAR:
-            if (first->value_type == VAL_REAL && second->value_type == VAL_REAL) {
-                return make_ast_node_binary(first, second, VAL_REAL, OTOR_STAR);
-            }
-
+            ast_operator = OTOR_STAR;
             break;
         case TOKEN_SLASH:
-            if (first->value_type == VAL_REAL && second->value_type == VAL_REAL) {
-                return make_ast_node_binary(first, second, VAL_REAL, OTOR_SLASH);
-            }
-
+            ast_operator = OTOR_SLASH;
+            break;
+        case TOKEN_DIV:
+            ast_operator = OTOR_DIV;
             break;
         default:
-            break; // Unreachable
+            assert(false); // TODO: Handle unreachable code in a better way
+            return NULL; // Unreachable
     }
 
-    // compiler_handle_error(compiler, ) TODO: Here we need to handle type error
-    return NULL;
+    return make_ast_node_binary(first, second, ast_operator);
 }
 
 static ASTNode *compiler_parse_unary(Compiler *compiler)
@@ -413,12 +447,17 @@ static ASTNode *compiler_parse_unary(Compiler *compiler)
     TokenType operator_type = compiler->previous.type;
     ASTNode *child = compiler_parse_precedence(compiler, PREC_UNARY);
 
+    ASTOperator ast_operator;
     switch (operator_type) {
         case TOKEN_MINUS:
-            return make_ast_node_unary(child, child->value_type, OTOR_MINUS);
+            ast_operator = OTOR_MINUS;
+            break;
         default:
+            assert(false); // TODO: Handle unreachable code in a better way
             return NULL; // Unreachable
     }
+
+    return make_ast_node_unary(child, ast_operator);
 }
 
 static ASTNode *compiler_parse_real(Compiler *compiler)
@@ -435,8 +474,10 @@ bool compiler_generate_ast(Compiler *compiler)
     ASTNode *ast = compiler_parse_expression(compiler);
     compiler_consume(compiler, TOKEN_EOF, "Expected end of expression.");
 
-    ast_node_print(ast, true);
-    ast_node_free(ast);
+    if (ast != NULL) {
+        ast_node_print(ast, true);
+        ast_node_free(ast);
+    }
 
     return !compiler->is_error;
 }
