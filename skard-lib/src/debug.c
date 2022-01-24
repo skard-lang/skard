@@ -1,6 +1,7 @@
 #include "debug.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 void disassemble_chunk(Chunk *chunk, const char *name)
 {
@@ -60,6 +61,7 @@ size_t disassemble_instruction(Chunk *chunk, size_t offset)
     printf("%06zu | ", column);
 
     uint8_t byte = chunk->code[offset];
+    assert((COUNT_OPS == 4) && "Exhaustive ops handling");
     switch (byte) {
         case OP_RETURN:
             return disassemble_simple_instruction("OP_RETURN", offset);

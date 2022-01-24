@@ -13,6 +13,7 @@ typedef enum {
     OP_DUMP,
     OP_CONSTANT,
     OP_CONSTANT_LONG,
+    COUNT_OPS
 } OpCode;
 
 typedef struct {

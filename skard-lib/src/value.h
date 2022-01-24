@@ -14,11 +14,11 @@ typedef enum {
     TYPE_INVALID,
     TYPE_REAL,
     TYPE_INT,
-    COUNT_TYPE,
+    COUNT_TYPES,
 } TypeKind;
 
 typedef struct {
-    TypeKind type;
+    TypeKind kind;
 } SkardType;
 
 SkardType make_skard_type_simple(TypeKind type);

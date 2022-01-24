@@ -9,7 +9,7 @@
 SkardType make_skard_type_simple(TypeKind type)
 {
     SkardType skard_type;
-    skard_type.type = type;
+    skard_type.kind = type;
     return skard_type;
 }
 
@@ -36,30 +36,31 @@ SkardType make_skard_type_int(void)
 SkardType copy_skard_type(SkardType *source)
 {
     SkardType destination;
-    destination.type = source->type;
+    destination.kind = source->kind;
     return destination;
 }
 
 
 bool is_skard_type_of_kind(SkardType *skard_type, TypeKind type)
 {
-    return skard_type->type == type;
+    return skard_type->kind == type;
 }
 
 bool is_skard_type_unknown(SkardType *skard_type)
 {
-    return skard_type->type == TYPE_UNKNOWN;
+    return skard_type->kind == TYPE_UNKNOWN;
 }
 
 bool is_skard_type_invalid(SkardType *skard_type)
 {
-    return skard_type->type == TYPE_INVALID;
+    return skard_type->kind == TYPE_INVALID;
 }
 
 
 void skard_type_print(SkardType *skard_type)
 {
-    switch (skard_type->type) {
+    assert((COUNT_TYPES == 4) && "Exhaustive types handling");
+    switch (skard_type->kind) {
         case TYPE_UNKNOWN:
         case TYPE_REAL:
         case TYPE_INT:
@@ -73,7 +74,8 @@ void skard_type_print(SkardType *skard_type)
 
 const char *skard_type_translate(SkardType *skard_type)
 {
-    switch (skard_type->type) {
+    assert((COUNT_TYPES == 4) && "Exhaustive types handling");
+    switch (skard_type->kind) {
         case TYPE_UNKNOWN:
             return "*Unknown";
         case TYPE_INVALID:
@@ -86,7 +88,6 @@ const char *skard_type_translate(SkardType *skard_type)
             break;
     }
 
-    assert(false);
     return NULL;
 }
 
@@ -99,12 +100,14 @@ Value make_value_real(SkReal real)
 
 void print_value(Value value)
 {
+    assert((COUNT_TYPES == 4) && "Exhaustive types handling");
     switch (value.type) {
         case TYPE_REAL:
             printf("%lf", value.as.sk_real);
             break;
         default:
             printf("UNKNOWN TYPE");
+            break;
     }
 }
 

@@ -2,7 +2,7 @@
 
 **WARNING! Skard is currently in active development. Breaking changes will happen unannounced. Use at your own risk.**
 
-Skard is (or rather will be) an embeddable type-safe scripting language syntactically inspired by Python spiced with C#.
+Skard is (or rather will be) an embeddable kind-safe scripting language syntactically inspired by Python spiced with C#.
 
 ## Subprojects
 
