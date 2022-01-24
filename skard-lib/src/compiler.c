@@ -95,6 +95,9 @@ static void ast_expression_unary_print(ASTExpressionUnary *unary)
         case OTOR_MINUS:
             printf("-");
             break;
+        case OTOR_PLUS:
+            printf("+");
+            break;
         default:
             ast_print_invalid();
             break;
@@ -135,7 +138,7 @@ static void ast_expression_binary_print(ASTExpressionBinary *binary)
 
 static void ast_expression_grouping_print(ASTExpressionGrouping *grouping)
 {
-    printf("(x) ");
+    printf("(_) ");
     ast_node_print((ASTNode *) grouping->child, false);
 }
 
@@ -238,6 +241,7 @@ static ASTNode *compiler_parse_grouping(Compiler *compiler);
 static ASTNode *compiler_parse_binary(Compiler *compiler, ASTNode *first);
 static ASTNode *compiler_parse_unary(Compiler *compiler);
 static ASTNode *compiler_parse_real(Compiler *compiler);
+static ASTNode *compiler_parse_int(Compiler *compiler);
 
 
 static ASTNode *make_ast_node_expression(ASTNodeExpression node_expression)
@@ -351,61 +355,61 @@ static void compiler_consume(Compiler *compiler, TokenType type, const char *mes
 
 
 static ParseRule parse_rules[] = {
-        [TOKEN_EOF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_EOL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_ERROR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LEFT_PAREN] = { .prefix = compiler_parse_grouping, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_RIGHT_PAREN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LEFT_BRACE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_RIGHT_BRACE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_RIGHT_BRACKET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LEFT_BRACKET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_DOT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_COMMA] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_COLON] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_PLUS] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_TERM },
-        [TOKEN_PLUS_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
-        [TOKEN_MINUS] = { .prefix = compiler_parse_unary, .infix = compiler_parse_binary, .precedence = PREC_TERM },
-        [TOKEN_MINUS_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
-        [TOKEN_RIGHT_ARROW] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
-        [TOKEN_STAR] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
-        [TOKEN_STAR_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_SLASH] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
-        [TOKEN_SLASH_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_AT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_NOT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_NOT_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_GREATER] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_GREATER_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LESS] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LESS_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_DIV] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
-        [TOKEN_PIPE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_OR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_AND] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_PACKAGE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_IMPORT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_STRUCT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_SELF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_LET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_NIL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_FN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_RETURN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_IF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_ELSE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_WHILE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_FOR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_TRUE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_FALSE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_MATCH] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_WITH] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_KEY_DUMP] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_IDENTIFIER] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LIT_STRING] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LIT_REAL] = { .prefix = compiler_parse_real, .infix = NULL, .precedence = PREC_NONE },
-        [TOKEN_LIT_INT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_EOF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_EOL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_ERROR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LEFT_PAREN] = { .prefix = compiler_parse_grouping, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_RIGHT_PAREN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LEFT_BRACE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_RIGHT_BRACE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_RIGHT_BRACKET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LEFT_BRACKET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_DOT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_COMMA] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_COLON] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_PLUS] = { .prefix = compiler_parse_unary, .infix = compiler_parse_binary, .precedence = PREC_TERM },
+    [TOKEN_PLUS_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
+    [TOKEN_MINUS] = { .prefix = compiler_parse_unary, .infix = compiler_parse_binary, .precedence = PREC_TERM },
+    [TOKEN_MINUS_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
+    [TOKEN_RIGHT_ARROW] = { .prefix = NULL, .infix = NULL, .precedence = PREC_TERM },
+    [TOKEN_STAR] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
+    [TOKEN_STAR_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_SLASH] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
+    [TOKEN_SLASH_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_AT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_NOT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_NOT_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_ASSIGN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_GREATER] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_GREATER_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LESS] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LESS_EQUAL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_DIV] = { .prefix = NULL, .infix = compiler_parse_binary, .precedence = PREC_FACTOR },
+    [TOKEN_PIPE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_OR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_AND] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_PACKAGE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_IMPORT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_STRUCT] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_SELF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_LET] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_NIL] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_FN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_RETURN] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_IF] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_ELSE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_WHILE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_FOR] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_TRUE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_FALSE] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_MATCH] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_WITH] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_KEY_DUMP] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_IDENTIFIER] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LIT_STRING] = { .prefix = NULL, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LIT_REAL] = { .prefix = compiler_parse_real, .infix = NULL, .precedence = PREC_NONE },
+    [TOKEN_LIT_INT] = { .prefix = compiler_parse_int, .infix = NULL, .precedence = PREC_NONE },
 };
 
 
@@ -490,6 +494,9 @@ static ASTNode *compiler_parse_unary(Compiler *compiler)
         case TOKEN_MINUS:
             ast_operator = OTOR_MINUS;
             break;
+        case TOKEN_PLUS:
+            ast_operator = OTOR_PLUS;
+            break;
         default:
             return NULL; // Unreachable
     }
@@ -499,11 +506,32 @@ static ASTNode *compiler_parse_unary(Compiler *compiler)
 
 static ASTNode *compiler_parse_real(Compiler *compiler)
 {
-    SkReal real = strtod(compiler->previous.start, NULL);
-    ASTNode *node = make_ast_node_value(make_value_real(real), make_skard_type_real());
+    SkReal sk_real = strtod(compiler->previous.start, NULL);
+    ASTNode *node = make_ast_node_value(make_value_real(sk_real), make_skard_type_real());
     return node;
 }
 
+static ASTNode *compiler_parse_int(Compiler *compiler)
+{
+    SkInt sk_int = strtoll(compiler->previous.start, NULL, 10);
+    ASTNode *node = make_ast_node_value(make_value_int(sk_int), make_skard_type_int());
+    return node;
+}
+
+
+static void report_type_error_unary(SkardType *child_type, ASTOperator operator);
+static void report_type_error_binary(SkardType *first_type, SkardType *second_type, ASTOperator operator);
+
+static SkardType compiler_infer_type_unary_plus(Compiler *compiler, SkardType *child_type);
+static SkardType compiler_infer_type_unary_minus(Compiler *compiler, SkardType *child_type);
+
+static SkardType compiler_infer_type_binary_plus(Compiler *compiler, SkardType *first_type, SkardType *second_type);
+static SkardType compiler_infer_type_binary_minus(Compiler *compiler, SkardType *first_type, SkardType *second_type);
+static SkardType compiler_infer_type_binary_star(Compiler *compiler, SkardType *first_type, SkardType *second_type);
+static SkardType compiler_infer_type_binary_slash(Compiler *compiler, SkardType *first_type, SkardType *second_type);
+static SkardType compiler_infer_type_binary_div(Compiler *compiler, SkardType *first_type, SkardType *second_type);
+
+static InferRule *get_infer_rule(ASTOperator operator);
 
 static SkardType compiler_infer_type_unary(Compiler *compiler, ASTExpressionUnary *node);
 static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBinary *node);
@@ -518,30 +546,191 @@ static bool compiler_typecheck_expression(Compiler *compiler, ASTNodeExpression 
 static bool compiler_typecheck_ast(Compiler *compiler, ASTNode *node);
 
 
+static void report_type_error_unary(SkardType *child_type, ASTOperator operator)
+{
+    fprintf(stderr, "ERROR: Invalid operand of data type '%s' for unary operator '%s'.\n",
+            skard_type_translate(child_type), ast_operator_translate(operator));
+}
+
+static void report_type_error_binary(SkardType *first_type, SkardType *second_type, ASTOperator operator)
+{
+    fprintf(stderr, "ERROR: Invalid operands of data types '%s', '%s' for binary operator '%s'.\n",
+            skard_type_translate(first_type), skard_type_translate(second_type), ast_operator_translate(operator));
+}
+
+
+static SkardType compiler_infer_type_unary_plus(Compiler *compiler, SkardType *child_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(child_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(child_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_unary(child_type, OTOR_PLUS);
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_unary_minus(Compiler *compiler, SkardType *child_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(child_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(child_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_unary(child_type, OTOR_MINUS);
+    return make_skard_type_invalid();
+}
+
+
+static SkardType compiler_infer_type_binary_plus(Compiler *compiler, SkardType *first_type, SkardType *second_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_binary(first_type, second_type, OTOR_PLUS);
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_binary_minus(Compiler *compiler, SkardType *first_type, SkardType *second_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_binary(first_type, second_type, OTOR_MINUS);
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_binary_star(Compiler *compiler, SkardType *first_type, SkardType *second_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_binary(first_type, second_type, OTOR_STAR);
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_binary_slash(Compiler *compiler, SkardType *first_type, SkardType *second_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_REAL) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_REAL)) {
+        return make_skard_type_real();
+    }
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_real();
+    }
+
+    report_type_error_binary(first_type, second_type, OTOR_SLASH);
+    return make_skard_type_invalid();
+}
+
+static SkardType compiler_infer_type_binary_div(Compiler *compiler, SkardType *first_type, SkardType *second_type)
+{
+    (void) compiler;
+
+    if (is_skard_type_of_kind(first_type, TYPE_INT) && is_skard_type_of_kind(second_type, TYPE_INT)) {
+        return make_skard_type_int();
+    }
+
+    report_type_error_binary(first_type, second_type, OTOR_DIV);
+    return make_skard_type_invalid();
+}
+
+
+static InferRule infer_rules[] = {
+        [OTOR_PLUS] = { .unary = compiler_infer_type_unary_plus, .binary = compiler_infer_type_binary_plus },
+        [OTOR_MINUS] = { .unary = compiler_infer_type_unary_minus, .binary = compiler_infer_type_binary_minus },
+        [OTOR_STAR] = { .unary = NULL, .binary = compiler_infer_type_binary_star },
+        [OTOR_SLASH] = { .unary = NULL, .binary = compiler_infer_type_binary_slash },
+        [OTOR_DIV] = { .unary = NULL, .binary = compiler_infer_type_binary_div },
+};
+
+static InferRule *get_infer_rule(ASTOperator operator)
+{
+    return &infer_rules[operator];
+}
+
+
 static SkardType compiler_infer_type_unary(Compiler *compiler, ASTExpressionUnary *node)
 {
     ASTNodeExpression *child_expression = &((ASTNode *) node->child)->as.node_expression;
     SkardType child_type = compiler_get_expression_type(compiler, child_expression);
 
-    ASTOperator operator = node->operator;
-    assert((COUNT_OTORS == 5) && "Exhaustive operators handling");
-    switch (operator) {
-        case OTOR_MINUS:
-            if (is_skard_type_of_kind(&child_type, TYPE_REAL)) {
-                return make_skard_type_real();
-            }
-            if (is_skard_type_of_kind(&child_type, TYPE_INT)) {
-                return make_skard_type_int();
-            }
-            fprintf(stderr, "ERROR: Invalid operand of kind '%s' to unary '%s'\n", skard_type_translate(&child_type),
-                    ast_operator_translate(operator));
-            break;
-        default:
-            break;
+    if (is_skard_type_invalid(&child_type)) {
+        return make_skard_type_invalid();
     }
 
-    fprintf(stderr, "ERROR: Could not infer unary expression kind.\n");
-    return make_skard_type_invalid();
+    InferFnUnary unary_rule = get_infer_rule(node->operator)->unary;
+    if (unary_rule == NULL) {
+        fprintf(stderr, "ERROR: Invalid unary operator '%s'\n", ast_operator_translate(node->operator));
+        return make_skard_type_invalid();
+    }
+
+    return unary_rule(compiler, &child_type);
 }
 
 static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBinary *node)
@@ -551,36 +740,24 @@ static SkardType compiler_infer_type_binary(Compiler *compiler, ASTExpressionBin
     SkardType first_type = compiler_get_expression_type(compiler, first_expression);
     SkardType second_type = compiler_get_expression_type(compiler, second_expression);
 
-    ASTOperator operator = node->operator;
-    assert((COUNT_OTORS == 5) && "Exhaustive operators handling");
-    switch (operator) {
-        case OTOR_PLUS:
-        case OTOR_MINUS:
-        case OTOR_STAR:
-            if (is_skard_type_of_kind(&first_type, TYPE_INT) && is_skard_type_of_kind(&second_type, TYPE_INT)) {
-                return make_skard_type_int();
-            }
-            if (is_skard_type_of_kind(&first_type, TYPE_REAL) || is_skard_type_of_kind(&second_type, TYPE_REAL)) {
-                return make_skard_type_real();
-            }
-            return make_skard_type_invalid();
-        case OTOR_SLASH:
-            return make_skard_type_real();
-        case OTOR_DIV:
-            return make_skard_type_int();
-        default:
-            break;
+    if (is_skard_type_invalid(&first_type) || is_skard_type_invalid(&second_type)) {
+        return make_skard_type_invalid();
     }
 
-    fprintf(stderr, "ERROR: Could not infer binary expression kind.\n");
-    return make_skard_type_invalid();
+    InferFnBinary binary_rule = get_infer_rule(node->operator)->binary;
+    if (binary_rule == NULL) {
+        fprintf(stderr, "ERROR: Invalid binary operator '%s'\n", ast_operator_translate(node->operator));
+        return make_skard_type_invalid();
+    }
+
+    return binary_rule(compiler, &first_type, &second_type);
 }
 
 static SkardType compiler_infer_type_grouping(Compiler *compiler, ASTExpressionGrouping *node)
 {
     ASTNodeExpression *child_expression = &((ASTNode *) node->child)->as.node_expression;
     SkardType child_type = compiler_get_expression_type(compiler, child_expression);
-    return copy_skard_type(&child_type);
+    return copy_skard_type(&child_type); // TODO: Consider unknown type at this point
 }
 
 
@@ -592,6 +769,8 @@ static SkardType compiler_infer_type_expression(Compiler *compiler, ASTNodeExpre
     assert((COUNT_AST_EXPRS == 4) && "Exhaustive expression kinds handling");
     switch (node->kind) {
         case AST_EXPR_VALUE:
+            fprintf(stderr, "Error: Unspecified value type.\n");
+            // TODO: Create better error message, this should never happen and should be a bug in compiler
             return make_skard_type_invalid();
         case AST_EXPR_UNARY:
             return compiler_infer_type_unary(compiler, &node->as.node_unary);
@@ -623,12 +802,12 @@ static bool compiler_typecheck_expression(Compiler *compiler, ASTNodeExpression 
 {
     SkardType expression_type = compiler_get_expression_type(compiler, node);
     if (is_skard_type_invalid(&expression_type)) {
-        fprintf(stderr, "ERROR: Invalid expression kind.\n");
+        fprintf(stderr, "ERROR: Invalid expression type.\n");
         return false;
     }
 
     if (is_skard_type_unknown(&expression_type)) {
-        fprintf(stderr, "ERROR: Could not infer expression kind.\n");
+        fprintf(stderr, "ERROR: Could not infer expression type.\n");
         return false;
     }
 

@@ -92,9 +92,14 @@ const char *skard_type_translate(SkardType *skard_type)
 }
 
 
-Value make_value_real(SkReal real)
+Value make_value_real(SkReal sk_real)
 {
-    return (Value) { .type = TYPE_REAL, .as.sk_real = real };
+    return (Value) { .type = TYPE_REAL, .as.sk_real = sk_real };
+}
+
+Value make_value_int(SkInt sk_int)
+{
+    return (Value) { .type = TYPE_INT, .as.sk_int = sk_int };
 }
 
 
@@ -104,6 +109,9 @@ void print_value(Value value)
     switch (value.type) {
         case TYPE_REAL:
             printf("%lf", value.as.sk_real);
+            break;
+        case TYPE_INT:
+            printf("%lld", value.as.sk_int);
             break;
         default:
             printf("UNKNOWN TYPE");

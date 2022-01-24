@@ -44,7 +44,8 @@ typedef struct {
     } as;
 } Value;
 
-Value make_value_real(SkReal real);
+Value make_value_real(SkReal sk_real);
+Value make_value_int(SkInt sk_int);
 
 void print_value(Value value);
 

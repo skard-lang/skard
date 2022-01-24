@@ -105,6 +105,14 @@ typedef struct {
     Precedence precedence;
 } ParseRule;
 
+typedef SkardType (*InferFnUnary)(Compiler *, SkardType *);
+typedef SkardType (*InferFnBinary)(Compiler *, SkardType *, SkardType *);
+
+typedef struct {
+    InferFnUnary unary;
+    InferFnBinary binary;
+} InferRule;
+
 void compiler_init(Compiler *compiler);
 
 bool compiler_compile_file(Compiler *compiler, const char *filename, Chunk *chunk);
